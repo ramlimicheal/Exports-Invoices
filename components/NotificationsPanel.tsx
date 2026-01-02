@@ -125,7 +125,13 @@ export const NotificationsPanel: React.FC = () => {
         
         {/* Footer */}
         <div className="px-4 py-2 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-          <button className="w-full text-center text-xs text-primary hover:text-primary-dark font-medium py-1">
+          <button 
+            onClick={() => {
+              markAllNotificationsRead();
+              toggleNotifications();
+            }}
+            className="w-full text-center text-xs text-primary hover:text-primary-dark font-medium py-1"
+          >
             View All Notifications
           </button>
         </div>

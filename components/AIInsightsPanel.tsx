@@ -1,8 +1,40 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
+import { Insight } from '../store';
 
 export const AIInsightsPanel: React.FC = () => {
-  const { state, dismissInsight } = useApp();
+  const { state, dismissInsight, setActiveNav, setFilters } = useApp();
+  
+  // Handle insight action click
+  const handleInsightAction = (insight: Insight) => {
+    // Navigate based on insight type
+    switch (insight.type) {
+      case 'recommendation':
+        // Navigate to invoices with relevant filter
+        setActiveNav('Invoices & Billing');
+        if (insight.title.toLowerCase().includes('cardamom')) {
+          setFilters({ search: 'Cardamom' });
+        }
+        break;
+      case 'alert':
+        // Navigate to invoices with overdue filter
+        setActiveNav('Invoices & Billing');
+        setFilters({ status: 'Unpaid' });
+        break;
+      case 'prediction':
+        // Navigate to analytics
+        setActiveNav('Analytics');
+        break;
+      case 'trend':
+        // Navigate to analytics
+        setActiveNav('Analytics');
+        break;
+      default:
+        setActiveNav('Dashboard');
+    }
+    // Dismiss the insight after action
+    dismissInsight(insight.id);
+  };
   
   if (state.insights.length === 0) return null;
   
@@ -82,7 +114,10 @@ export const AIInsightsPanel: React.FC = () => {
                   {insight.description}
                 </p>
                 {insight.actionable && insight.action && (
-                  <button className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary-dark transition-colors">
+                  <button 
+                    onClick={() => handleInsightAction(insight)}
+                    className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary-dark transition-colors"
+                  >
                     {insight.action}
                     <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
                   </button>
@@ -96,7 +131,10 @@ export const AIInsightsPanel: React.FC = () => {
       {/* Footer */}
       {state.insights.length > 4 && (
         <div className="px-4 py-2 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-          <button className="w-full text-center text-xs text-primary hover:text-primary-dark font-medium py-1">
+          <button 
+            onClick={() => setActiveNav('Dashboard')}
+            className="w-full text-center text-xs text-primary hover:text-primary-dark font-medium py-1"
+          >
             View All {state.insights.length} Insights
           </button>
         </div>
