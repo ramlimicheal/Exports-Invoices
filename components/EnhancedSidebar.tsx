@@ -1,5 +1,6 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 
 interface NavItemProps {
   icon: string;
@@ -46,6 +47,7 @@ export const EnhancedSidebar: React.FC = () => {
     toggleSettings,
     unreadNotificationCount,
   } = useApp();
+  const { logout, user } = useAuth();
   
   const handleNavClick = (item: string) => {
     setActiveNav(item);
@@ -87,18 +89,24 @@ export const EnhancedSidebar: React.FC = () => {
               <img 
                 alt="User Avatar" 
                 className="w-10 h-10 rounded-full border border-gray-300 dark:border-gray-600" 
-                src={state.currentUser?.avatar || 'https://ui-avatars.com/api/?name=User&background=EF4444&color=fff'}
+                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=EF4444&color=fff`}
               />
               <div>
                 <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                  {state.currentUser?.name || 'User'}
+                  {user?.name || 'User'}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">
-                  {state.currentUser?.role || 'Admin'}
+                  {user?.email || 'Admin'}
                 </div>
               </div>
             </div>
-            <span className="material-symbols-outlined text-gray-400 text-sm">expand_more</span>
+            <button 
+              onClick={logout}
+              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
+              title="Logout"
+            >
+              <span className="material-symbols-outlined text-sm">logout</span>
+            </button>
           </div>
         </div>
 

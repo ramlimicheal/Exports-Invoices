@@ -530,9 +530,13 @@ export type AppAction =
   | { type: 'DELETE_INVOICES'; payload: string[] }
   | { type: 'ADD_COMMENT'; payload: Comment }
   | { type: 'ADD_ACTIVITY'; payload: Activity }
+  | { type: 'SET_COMMENTS'; payload: Comment[] }
+  | { type: 'SET_ACTIVITIES'; payload: Activity[] }
   | { type: 'MARK_NOTIFICATION_READ'; payload: string }
   | { type: 'MARK_ALL_NOTIFICATIONS_READ' }
+  | { type: 'SET_NOTIFICATIONS'; payload: Notification[] }
   | { type: 'DISMISS_INSIGHT'; payload: string }
+  | { type: 'SET_INSIGHTS'; payload: AIInsight[] }
   | { type: 'UPDATE_SETTINGS'; payload: Partial<AppSettings> }
   | { type: 'TOGGLE_THEME' }
   | { type: 'TOGGLE_COMMAND_PALETTE' }
@@ -541,6 +545,7 @@ export type AppAction =
   | { type: 'TOGGLE_NOTIFICATIONS' }
   | { type: 'TOGGLE_SIDEBAR' }
   | { type: 'SET_ACTIVE_NAV'; payload: string }
+  | { type: 'SET_INVOICES'; payload: { invoices: Invoice[]; invoiceDetails: Record<string, InvoiceDetailData> } }
   | { type: 'RESET_STATE' };
 
 // Reducer
@@ -614,6 +619,12 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
     case 'ADD_ACTIVITY':
       return { ...state, activities: [action.payload, ...state.activities] };
     
+    case 'SET_COMMENTS':
+      return { ...state, comments: action.payload };
+    
+    case 'SET_ACTIVITIES':
+      return { ...state, activities: action.payload };
+    
     case 'MARK_NOTIFICATION_READ':
       return {
         ...state,
@@ -628,10 +639,24 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         notifications: state.notifications.map(n => ({ ...n, read: true })),
       };
     
+    case 'SET_NOTIFICATIONS':
+      return { ...state, notifications: action.payload };
+    
     case 'DISMISS_INSIGHT':
       return {
         ...state,
         insights: state.insights.filter(i => i.id !== action.payload),
+      };
+    
+    case 'SET_INSIGHTS':
+      return { ...state, insights: action.payload };
+    
+    case 'SET_INVOICES':
+      return {
+        ...state,
+        invoices: action.payload.invoices,
+        invoiceDetails: action.payload.invoiceDetails,
+        selectedInvoiceId: action.payload.invoices[0]?.id || null,
       };
     
     case 'UPDATE_SETTINGS':
