@@ -1,10 +1,145 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 
+// Helper function to generate printable invoice HTML
+const generateInvoiceHTML = (invoice: any): string => {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Invoice ${invoice.id}</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; margin-bottom: 30px; }
+        .title { font-size: 24px; font-weight: bold; color: #EF4444; }
+        .status { padding: 4px 12px; border-radius: 4px; font-size: 12px; }
+        .status-paid { background: #DEF7EC; color: #03543F; }
+        .status-quote { background: #FEF3C7; color: #92400E; }
+        .status-unpaid { background: #FEE2E2; color: #991B1B; }
+        .status-transit { background: #DBEAFE; color: #1E40AF; }
+        .section { margin-bottom: 20px; padding: 15px; border: 1px solid #E5E7EB; border-radius: 8px; }
+        .section-title { font-size: 10px; color: #6B7280; text-transform: uppercase; margin-bottom: 8px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 8px; text-align: left; border-bottom: 1px solid #E5E7EB; }
+        th { background: #F9FAFB; font-size: 12px; color: #6B7280; }
+        .total-row { font-weight: bold; font-size: 16px; }
+        .total-amount { color: #EF4444; }
+        @media print { body { padding: 20px; } }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <div>
+          <div class="title">${invoice.id}</div>
+          <span class="status status-${invoice.status.toLowerCase().replace('-', '')}">${invoice.status}</span>
+        </div>
+        <div style="text-align: right;">
+          <div>Date: ${invoice.issueDate}</div>
+          <div>Due: ${invoice.dueDate}</div>
+        </div>
+      </div>
+      <div class="grid">
+        <div class="section">
+          <div class="section-title">Exporter / Shipper</div>
+          <strong>${invoice.billFrom.name}</strong>
+          <div>${invoice.billFrom.address}</div>
+          <div>${invoice.billFrom.taxId}</div>
+        </div>
+        <div class="section">
+          <div class="section-title">Consignee / Buyer</div>
+          <strong>${invoice.billTo.name}</strong>
+          <div>${invoice.billTo.address}</div>
+          <div>${invoice.billTo.email}</div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">Commodity Details</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th>Unit Price</th>
+              <th>Qty</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${invoice.items.map((item: any) => `
+              <tr>
+                <td>${item.description}<br><small>HS: ${item.hsCode}</small></td>
+                <td>$${item.price.toFixed(2)}</td>
+                <td>${item.qty} ${item.unit}</td>
+                <td>$${(item.price * item.qty).toFixed(2)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div style="text-align: right; margin-top: 20px;">
+        <div>Sub Total: $${invoice.subTotal.toFixed(2)}</div>
+        <div>Freight & Insurance: $${invoice.freightCost.toFixed(2)}</div>
+        <div class="total-row">Total: <span class="total-amount">$${invoice.total.toFixed(2)}</span></div>
+      </div>
+    </body>
+    </html>
+  `;
+};
+
 export const EnhancedInvoiceDetail: React.FC = () => {
   const { selectedInvoiceDetail, state, updateInvoice, addComment, addActivity } = useApp();
   const [newComment, setNewComment] = useState('');
   const [activeTab, setActiveTab] = useState<'details' | 'comments' | 'activity'>('details');
+  const [emailSending, setEmailSending] = useState(false);
+  
+  // Handle print invoice
+  const handlePrint = () => {
+    if (!selectedInvoiceDetail) return;
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(generateInvoiceHTML(selectedInvoiceDetail));
+      printWindow.document.close();
+      printWindow.print();
+    }
+  };
+  
+  // Handle download invoice as HTML file
+  const handleDownload = () => {
+    if (!selectedInvoiceDetail) return;
+    const html = generateInvoiceHTML(selectedInvoiceDetail);
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${selectedInvoiceDetail.id}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+  
+  // Handle email to buyer
+  const handleEmail = async () => {
+    if (!selectedInvoiceDetail || !state.currentUser) return;
+    setEmailSending(true);
+    
+    // Simulate email sending (in production, this would call the backend API)
+    setTimeout(() => {
+      setEmailSending(false);
+      alert(`Email sent to ${selectedInvoiceDetail.billTo.email} for invoice ${selectedInvoiceDetail.id}`);
+      
+      // Add activity
+      addActivity({
+        id: `act-${Date.now()}`,
+        type: 'email_sent',
+        invoiceId: selectedInvoiceDetail.id,
+        userId: state.currentUser!.id,
+        userName: state.currentUser!.name,
+        description: `${state.currentUser!.name} sent invoice to ${selectedInvoiceDetail.billTo.email}`,
+        timestamp: new Date().toISOString(),
+      });
+    }, 1000);
+  };
   
   if (!selectedInvoiceDetail) {
     return (
@@ -86,15 +221,27 @@ export const EnhancedInvoiceDetail: React.FC = () => {
           {isQuote ? 'Quote Preview' : 'Commercial Invoice'}
         </h3>
         <div className="flex items-center gap-2">
-          <button className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+          <button 
+            onClick={handlePrint}
+            title="Print Invoice"
+            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          >
             <span className="material-symbols-outlined text-[20px]">print</span>
           </button>
-          <button className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+          <button 
+            onClick={handleDownload}
+            title="Download Invoice"
+            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          >
             <span className="material-symbols-outlined text-[20px]">download</span>
           </button>
-          <button className="px-3 py-1.5 text-xs font-medium text-white bg-gray-900 dark:bg-primary rounded hover:opacity-90 transition-opacity shadow-sm flex items-center gap-1">
-            <span className="material-symbols-outlined text-[16px]">send</span>
-            Email to Buyer
+          <button 
+            onClick={handleEmail}
+            disabled={emailSending}
+            className="px-3 py-1.5 text-xs font-medium text-white bg-gray-900 dark:bg-primary rounded hover:opacity-90 transition-opacity shadow-sm flex items-center gap-1 disabled:opacity-50"
+          >
+            <span className="material-symbols-outlined text-[16px]">{emailSending ? 'hourglass_empty' : 'send'}</span>
+            {emailSending ? 'Sending...' : 'Email to Buyer'}
           </button>
         </div>
       </div>

@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 
 export const ActivityFeed: React.FC = () => {
   const { state, setSelectedInvoice } = useApp();
+  const [showAll, setShowAll] = useState(false);
   
   const getActivityIcon = (type: string) => {
     switch (type) {
@@ -53,8 +54,11 @@ export const ActivityFeed: React.FC = () => {
           <h3 className="font-bold text-gray-900 dark:text-white text-sm">Recent Activity</h3>
           <p className="text-[10px] text-gray-400">Latest updates across all invoices</p>
         </div>
-        <button className="text-xs text-primary hover:text-primary-dark font-medium">
-          View All
+        <button 
+          onClick={() => setShowAll(!showAll)}
+          className="text-xs text-primary hover:text-primary-dark font-medium"
+        >
+          {showAll ? 'Show Less' : 'View All'}
         </button>
       </div>
       
@@ -66,7 +70,7 @@ export const ActivityFeed: React.FC = () => {
             <p className="text-sm">No recent activity</p>
           </div>
         ) : (
-          state.activities.slice(0, 10).map((activity) => (
+          (showAll ? state.activities : state.activities.slice(0, 10)).map((activity) => (
             <div 
               key={activity.id}
               className="px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"

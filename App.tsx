@@ -1,5 +1,6 @@
 import React from 'react';
 import { AppProvider, useApp } from './context/AppContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { EnhancedSidebar } from './components/EnhancedSidebar';
 import { EnhancedHeader } from './components/EnhancedHeader';
 import { EnhancedStatsCards } from './components/EnhancedStatsCard';
@@ -14,6 +15,7 @@ import { AnalyticsDashboard } from './components/AnalyticsDashboard';
 import { QuickQuoteModal } from './components/QuickQuoteModal';
 import { CommandPalette } from './components/CommandPalette';
 import { SettingsModal } from './components/SettingsModal';
+import { LoginPage } from './components/LoginPage';
 
 const MainContent: React.FC = () => {
   const { state, toggleQuoteModal } = useApp();
@@ -101,11 +103,38 @@ const MainContent: React.FC = () => {
   );
 };
 
-const App: React.FC = () => {
+const AuthenticatedApp: React.FC = () => {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="text-primary">
+            <span className="material-symbols-outlined text-5xl animate-pulse">bolt</span>
+          </div>
+          <div className="text-lg font-medium text-gray-600">Loading ShipNow...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
+
   return (
     <AppProvider>
       <MainContent />
     </AppProvider>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <AuthenticatedApp />
+    </AuthProvider>
   );
 };
 

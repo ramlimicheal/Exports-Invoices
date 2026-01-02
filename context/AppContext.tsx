@@ -109,20 +109,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       
       // Keyboard shortcuts when no modal is open
       if (!state.isCommandPaletteOpen && !state.isQuoteModalOpen && !state.isSettingsOpen) {
+        // Skip shortcuts when typing in input fields or textareas
+        const isTyping = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
+        
         // N for new quote
-        if (e.key === 'n' && !e.metaKey && !e.ctrlKey && !(e.target instanceof HTMLInputElement)) {
+        if (e.key === 'n' && !e.metaKey && !e.ctrlKey && !isTyping) {
           e.preventDefault();
           dispatch({ type: 'TOGGLE_QUOTE_MODAL' });
         }
         
         // 1, 2, 3 for view modes
-        if (e.key === '1' && !e.metaKey && !e.ctrlKey && !(e.target instanceof HTMLInputElement)) {
+        if (e.key === '1' && !e.metaKey && !e.ctrlKey && !isTyping) {
           dispatch({ type: 'SET_VIEW_MODE', payload: 'list' });
         }
-        if (e.key === '2' && !e.metaKey && !e.ctrlKey && !(e.target instanceof HTMLInputElement)) {
+        if (e.key === '2' && !e.metaKey && !e.ctrlKey && !isTyping) {
           dispatch({ type: 'SET_VIEW_MODE', payload: 'board' });
         }
-        if (e.key === '3' && !e.metaKey && !e.ctrlKey && !(e.target instanceof HTMLInputElement)) {
+        if (e.key === '3' && !e.metaKey && !e.ctrlKey && !isTyping) {
           dispatch({ type: 'SET_VIEW_MODE', payload: 'calendar' });
         }
       }

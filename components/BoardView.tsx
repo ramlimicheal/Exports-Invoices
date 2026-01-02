@@ -72,7 +72,7 @@ export const BoardView: React.FC = () => {
       {/* Header */}
       <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
         <h3 className="text-lg font-bold text-gray-900 dark:text-white">Kanban Board</h3>
-        <p className="text-xs text-gray-400">Drag and drop to update status</p>
+        <p className="text-xs text-gray-400">Click a card to view details and update status</p>
       </div>
       
       {/* Board */}

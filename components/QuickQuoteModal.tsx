@@ -190,7 +190,15 @@ export const QuickQuoteModal: React.FC<QuickQuoteModalProps> = ({ isOpen, onClos
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Incoterms</label>
                 <div className="flex gap-2">
                   {['FOB', 'CIF', 'EXW'].map(term => (
-                    <button key={term} className="px-3 py-1.5 border border-gray-200 rounded text-sm hover:bg-gray-50 focus:bg-primary focus:text-white focus:border-primary transition-colors">
+                    <button 
+                      key={term} 
+                      onClick={() => setIncoterms(term)}
+                      className={`px-3 py-1.5 border rounded text-sm transition-colors ${
+                        incoterms === term 
+                          ? 'bg-primary text-white border-primary' 
+                          : 'border-gray-200 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700'
+                      }`}
+                    >
                       {term}
                     </button>
                   ))}
