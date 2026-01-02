@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { COMMODITIES } from '../constants';
+import React, { useState } from 'react';
+import { useApp } from '../context/AppContext';
 
 interface QuickQuoteModalProps {
   isOpen: boolean;
@@ -7,18 +7,76 @@ interface QuickQuoteModalProps {
 }
 
 export const QuickQuoteModal: React.FC<QuickQuoteModalProps> = ({ isOpen, onClose }) => {
-  const [selectedCommodityId, setSelectedCommodityId] = useState<string>(COMMODITIES[0].id);
+  const { state, addInvoice, addActivity } = useApp();
+  const commodities = state.commodities;
+  
+  const [selectedCommodityId, setSelectedCommodityId] = useState<string>(commodities[0]?.id || 'c1');
   const [qty, setQty] = useState<number>(100);
   const [marginPercent, setMarginPercent] = useState<number>(5);
   const [freightCost, setFreightCost] = useState<number>(0);
+  const [incoterms, setIncoterms] = useState<string>('CIF');
+  const [buyerName, setBuyerName] = useState<string>('');
+  const [destination, setDestination] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Derived state
-  const commodity = COMMODITIES.find(c => c.id === selectedCommodityId) || COMMODITIES[0];
-  const basePrice = commodity.dailyRate * qty;
+  const commodity = commodities.find(c => c.id === selectedCommodityId) || commodities[0];
+  const basePrice = commodity ? commodity.dailyRate * qty : 0;
   const marginAmount = basePrice * (marginPercent / 100);
   const sellPrice = basePrice + marginAmount;
   const totalQuote = sellPrice + freightCost;
-  const unitPriceFinal = totalQuote / qty;
+  const unitPriceFinal = qty > 0 ? totalQuote / qty : 0;
+
+  const handleGenerateInvoice = () => {
+    if (!commodity) return;
+    
+    setIsSubmitting(true);
+    
+    // Generate a new invoice ID
+    const invoiceNum = state.invoices.length + 1;
+    const invoiceId = `INV-${String(invoiceNum).padStart(4, '0')}`;
+    
+    // Create the new invoice
+    const newInvoice = {
+      id: invoiceId,
+      companyName: buyerName || 'New Buyer',
+      companyInitial: (buyerName || 'N')[0].toUpperCase(),
+      companyColor: 'bg-blue-100',
+      companyTextColor: 'text-blue-700',
+      shippingId: `SHP-${String(invoiceNum).padStart(4, '0')}`,
+      commodityName: commodity.name,
+      destinationCountry: destination || 'TBD',
+      issueDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      amount: Math.round(totalQuote),
+      status: 'Quote' as const,
+    };
+    
+    addInvoice(newInvoice);
+    
+    // Add activity
+    if (state.currentUser) {
+      addActivity({
+        id: `act-${Date.now()}`,
+        type: 'created',
+        invoiceId: invoiceId,
+        userId: state.currentUser.id,
+        userName: state.currentUser.name,
+        description: `${state.currentUser.name} created quote ${invoiceId}`,
+        timestamp: new Date().toISOString(),
+      });
+    }
+    
+    // Reset form
+    setQty(100);
+    setMarginPercent(5);
+    setFreightCost(0);
+    setBuyerName('');
+    setDestination('');
+    setIsSubmitting(false);
+    
+    onClose();
+  };
 
   if (!isOpen) return null;
 
@@ -31,7 +89,7 @@ export const QuickQuoteModal: React.FC<QuickQuoteModalProps> = ({ isOpen, onClos
       />
 
       {/* Modal Content */}
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="bg-gray-900 p-6 flex justify-between items-start">
           <div>
@@ -53,13 +111,35 @@ export const QuickQuoteModal: React.FC<QuickQuoteModalProps> = ({ isOpen, onClos
             <div className="space-y-5">
               
               <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Buyer Name</label>
+                <input 
+                  type="text" 
+                  value={buyerName}
+                  onChange={(e) => setBuyerName(e.target.value)}
+                  placeholder="Enter buyer company name"
+                  className="w-full bg-white border border-gray-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-primary outline-none dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Destination</label>
+                <input 
+                  type="text" 
+                  value={destination}
+                  onChange={(e) => setDestination(e.target.value)}
+                  placeholder="Enter destination country"
+                  className="w-full bg-white border border-gray-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-primary outline-none dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                />
+              </div>
+
+              <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Commodity</label>
                 <select 
                   value={selectedCommodityId}
                   onChange={(e) => setSelectedCommodityId(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-3"
+                  className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-3 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 >
-                  {COMMODITIES.map(c => (
+                  {commodities.map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
@@ -151,9 +231,13 @@ export const QuickQuoteModal: React.FC<QuickQuoteModalProps> = ({ isOpen, onClos
                 <p className="text-xs text-gray-500 mb-4">
                   * Rates are based on today's market close. Commission is internal.
                 </p>
-                <button className="w-full bg-primary text-white font-semibold py-3 rounded-lg shadow-lg shadow-primary/30 hover:bg-red-600 transition-all flex items-center justify-center gap-2">
-                  <span className="material-symbols-outlined text-lg">description</span>
-                  Generate Proforma Invoice
+                <button 
+                  onClick={handleGenerateInvoice}
+                  disabled={isSubmitting}
+                  className="w-full bg-primary text-white font-semibold py-3 rounded-lg shadow-lg shadow-primary/30 hover:bg-red-600 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span className="material-symbols-outlined text-lg">{isSubmitting ? 'hourglass_empty' : 'description'}</span>
+                  {isSubmitting ? 'Generating...' : 'Generate Proforma Invoice'}
                 </button>
               </div>
             </div>
